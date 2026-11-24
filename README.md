@@ -44,10 +44,13 @@ dashboard-ventas-nodejs/
 
 ## Endpoints principales
 
-- `GET /api/ventas/resumen` — totales del día, mes y cartera pendiente
-- `GET /api/ventas/por-dia?desde=&hasta=` — ventas agrupadas por día
-- `GET /api/ventas/top-productos` — top 5 productos más vendidos
-- `GET /api/clientes/cartera` — clientes con saldo pendiente
+- `GET /api/ventas/resumen` — totales del día, mes, cartera, ticket promedio y ventas por tipo
+- `GET /api/ventas/por-dia?desde=&hasta=` — ventas agrupadas por día (filtros opcionales)
+- `GET /api/ventas/top-productos?desde=&hasta=` — top 5 productos (filtros opcionales)
+- `GET /api/ventas/por-categoria` — ventas por categoría (mes en curso)
+- `GET /api/clientes/cartera` — clientes con saldo pendiente y días de antigüedad
+- `GET /api/clientes/top` — top 5 clientes por compras
+- `GET /api/productos/stock-bajo` — productos con stock <= mínimo
 
 ## Metodología
 

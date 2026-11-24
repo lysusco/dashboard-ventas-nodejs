@@ -6,51 +6,400 @@
   <title>Dashboard de Ventas</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body { font-family: system-ui, sans-serif; margin: 0; background: #f1f5f9; color: #0f172a; }
-    header { background: #4f46e5; color: #fff; padding: 16px 24px; }
-    .container { max-width: 1100px; margin: 0 auto; padding: 24px; }
-    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap: 16px; margin-bottom: 24px; }
-    .card { background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,.06); }
-    .card h3 { margin: 0 0 8px; color: #475569; font-size: .9rem; }
-    .card .value { font-size: 1.6rem; font-weight: 700; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
-    canvas { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 4px 12px rgba(0,0,0,.06); }
+    :root {
+      --bg: #0f172a;
+      --panel: #1e293b;
+      --card: #ffffff;
+      --muted: #64748b;
+      --text: #0f172a;
+      --primary: #4f46e5;
+      --primary-2: #6366f1;
+      --cyan: #06b6d4;
+      --green: #10b981;
+      --amber: #f59e0b;
+      --red: #ef4444;
+      --shadow: 0 10px 30px rgba(15, 23, 42, .08);
+      --radius: 16px;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #f1f5f9; color: var(--text); }
+    header {
+      background: linear-gradient(135deg, #4f46e5, #6366f1 60%, #06b6d4);
+      color: #fff; padding: 20px 28px;
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+      box-shadow: 0 4px 20px rgba(79,70,229,.25);
+    }
+    header h1 { margin: 0; font-size: 1.5rem; letter-spacing: .3px; }
+    header .sub { opacity: .85; font-size: .85rem; margin-top: 2px; }
+    .btn {
+      background: rgba(255,255,255,.15); color: #fff; border: 1px solid rgba(255,255,255,.3);
+      padding: 8px 14px; border-radius: 10px; cursor: pointer; font-weight: 600;
+      backdrop-filter: blur(6px); transition: transform .15s, background .15s;
+    }
+    .btn:hover { background: rgba(255,255,255,.25); transform: translateY(-1px); }
+    .filters { display: flex; gap: 12px; flex-wrap: wrap; align-items: end; }
+    .filters label { display: block; font-size: .75rem; color: var(--muted); margin-bottom: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
+    .filters input[type=date] { padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 10px; font: inherit; }
+    .filters .btn { padding: 9px 14px; }
+    .delta { font-size: .85rem; font-weight: 700; margin-top: 6px; }
+    .delta.up { color: var(--green); }
+    .delta.down { color: var(--red); }
+    .delta.flat { color: var(--muted); }
+    .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px,1fr)); gap: 16px; margin-bottom: 24px; }
+    .card {
+      background: var(--card); padding: 20px; border-radius: var(--radius);
+      box-shadow: var(--shadow); transition: transform .2s, box-shadow .2s;
+      position: relative; overflow: hidden;
+    }
+    .card:hover { transform: translateY(-3px); box-shadow: 0 14px 34px rgba(15,23,42,.12); }
+    .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; }
+    .card.hoy::before { background: var(--primary); }
+    .card.mes::before { background: var(--cyan); }
+    .card.car::before { background: var(--red); }
+    .card.cli::before { background: var(--amber); }
+    .card h3 { margin: 0 0 6px; color: var(--muted); font-size: .85rem; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
+    .card .value { font-size: 1.7rem; font-weight: 800; }
+    .card .hint { color: var(--muted); font-size: .8rem; margin-top: 6px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+    .panel {
+      background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
+      padding: 18px;
+    }
+    .panel h2 { margin: 0 0 12px; font-size: 1.05rem; color: var(--text); }
+    canvas { width: 100% !important; height: 300px !important; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+    th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+    th { color: var(--muted); font-weight: 600; font-size: .78rem; text-transform: uppercase; letter-spacing: .4px; }
+    .badge { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: .75rem; font-weight: 700; color: #fff; }
+    .b-green { background: var(--green); }
+    .b-amber { background: var(--amber); }
+    .b-red { background: var(--red); }
+    .empty { color: var(--muted); text-align: center; padding: 24px; font-style: italic; }
+    .ts { color: var(--muted); font-size: .78rem; margin-top: 4px; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(8px);} to { opacity: 1; transform: none;} }
+    .fade { animation: fadeUp .4s ease both; }
   </style>
 </head>
 <body>
-  <header><h1>Dashboard de Ventas</h1></header>
-  <div class="container">
-    <div class="cards">
-      <div class="card"><h3>Ventas hoy</h3><div class="value" id="hoy">$0</div></div>
-      <div class="card"><h3>Ventas del mes</h3><div class="value" id="mes">$0</div></div>
-      <div class="card"><h3>Cartera pendiente</h3><div class="value" id="cartera">$0</div></div>
+  <header>
+    <div>
+      <h1>📊 Dashboard de Ventas</h1>
+      <div class="sub">MiniMercado El Ahorro — panel comercial</div>
     </div>
-    <div class="grid">
-      <canvas id="chartDias"></canvas>
-      <canvas id="chartTop"></canvas>
+    <div style="text-align:right">
+      <button class="btn" id="refreshBtn">↻ Actualizar</button>
+      <div class="ts" id="ts"></div>
+    </div>
+  </header>
+  <div class="container">
+    <div class="panel fade" style="margin-bottom:16px">
+      <div class="filters">
+        <div><label>Desde</label><input type="date" id="desde"></div>
+        <div><label>Hasta</label><input type="date" id="hasta"></div>
+        <button class="btn" id="applyFilters" style="background:var(--primary);color:#fff;border:none">Aplicar</button>
+        <button class="btn" id="clearFilters" style="background:#e2e8f0;color:var(--text)">Últimos 14</button>
+      </div>
+    </div>
+    <div class="cards fade">
+      <div class="card hoy">
+        <h3>Ventas hoy</h3>
+        <div class="value" id="hoy">$0</div>
+        <div class="delta" id="deltaHoy"></div>
+        <div class="hint">vs ayer</div>
+      </div>
+      <div class="card mes">
+        <h3>Ventas del mes</h3>
+        <div class="value" id="mes">$0</div>
+        <div class="delta" id="deltaMes"></div>
+        <div class="hint">vs mes anterior</div>
+      </div>
+      <div class="card car">
+        <h3>Cartera pendiente</h3>
+        <div class="value" id="cartera">$0</div>
+        <div class="hint" id="morososHint">0 clientes morosos</div>
+      </div>
+      <div class="card cli">
+        <h3>Clientes con saldo</h3>
+        <div class="value" id="clientesSaldo">0</div>
+        <div class="hint">Con deuda pendiente</div>
+      </div>
+      <div class="card" style="border-top:4px solid var(--cyan)">
+        <h3>Ticket promedio</h3>
+        <div class="value" id="ticket">$0</div>
+        <div class="hint" id="ticketHint">por venta (mes)</div>
+      </div>
+      <div class="card" style="border-top:4px solid var(--red)">
+        <h3>Stock bajo</h3>
+        <div class="value" id="stockBajoCount">0</div>
+        <div class="hint">Productos por reponer</div>
+      </div>
+    </div>
+
+    <div class="grid fade">
+      <div class="panel">
+        <h2>Ventas por día (últimos 14)</h2>
+        <canvas id="chartDias"></canvas>
+      </div>
+      <div class="panel">
+        <h2>Top 5 productos</h2>
+        <canvas id="chartTop"></canvas>
+      </div>
+    </div>
+
+    <div class="grid fade">
+      <div class="panel">
+        <h2>Cartera por cliente</h2>
+        <canvas id="chartCartera"></canvas>
+      </div>
+      <div class="panel">
+        <h2>Envejecimiento de la cartera</h2>
+        <canvas id="chartAging"></canvas>
+      </div>
+    </div>
+
+    <div class="panel fade">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <h2 style="margin:0">Clientes con saldo pendiente</h2>
+        <button class="btn" id="exportCsv" style="background:var(--primary);color:#fff;border:none">⬇ Exportar CSV</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Cliente</th><th>Saldo</th><th>Días</th><th>Estado</th></tr></thead>
+          <tbody id="carteraBody"></tbody>
+        </table>
+      </div>
+      <div id="carteraEmpty" class="empty" style="display:none">Sin clientes con saldo pendiente 🎉</div>
+    </div>
+
+    <div class="panel fade" style="margin-top:16px">
+      <h2>Ventas por tipo (mes en curso)</h2>
+      <div style="max-width:340px;margin:0 auto"><canvas id="chartTipo"></canvas></div>
+      <div id="tipoLegend" style="text-align:center;color:var(--muted);font-size:.85rem;margin-top:8px"></div>
+    </div>
+
+    <div class="panel fade" style="margin-top:16px">
+      <h2>Productos con stock bajo</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Producto</th><th>Categoría</th><th>Stock actual</th><th>Mínimo</th></tr></thead>
+          <tbody id="stockBody"></tbody>
+        </table>
+      </div>
+      <div id="stockEmpty" class="empty" style="display:none">Todo el inventario OK ✅</div>
+    </div>
+
+    <div class="panel fade" style="margin-top:16px">
+      <h2>Top 5 clientes por compras</h2>
+      <div style="max-width:520px;margin:0 auto"><canvas id="chartClientes"></canvas></div>
+      <div class="table-wrap" style="margin-top:12px">
+        <table>
+          <thead><tr><th>Cliente</th><th>Compras</th><th>Total</th></tr></thead>
+          <tbody id="clientesTopBody"></tbody>
+        </table>
+      </div>
+      <div id="clientesTopEmpty" class="empty" style="display:none">Sin clientes con compras registradas</div>
+    </div>
+
+    <div class="panel fade" style="margin-top:16px">
+      <h2>Ventas por categoría (mes en curso)</h2>
+      <div style="max-width:340px;margin:0 auto"><canvas id="chartCategoria"></canvas></div>
+      <div id="categoriaLegend" style="text-align:center;color:var(--muted);font-size:.85rem;margin-top:8px"></div>
     </div>
   </div>
+
   <script>
-    async function load() {
-      const r = await fetch('/api/ventas/resumen');
-      const d = await r.json();
-      document.getElementById('hoy').textContent = '$' + Number(d.hoy).toLocaleString();
-      document.getElementById('mes').textContent = '$' + Number(d.mes).toLocaleString();
-      document.getElementById('cartera').textContent = '$' + Number(d.cartera).toLocaleString();
+    const fmt = n => '$' + Number(n || 0).toLocaleString('es-CO');
+    const colorFor = d => d > 60 ? '#ef4444' : d > 30 ? '#f59e0b' : '#10b981';
+    const labelFor = d => d > 60 ? 'Moroso' : d > 30 ? 'Por vencer' : 'Al día';
 
-      const dias = await (await fetch('/api/ventas/por-dia')).json();
-      new Chart(document.getElementById('chartDias'), {
-        type: 'bar',
-        data: { labels: dias.map(x=>x.fecha).reverse(), datasets: [{ label: 'Ventas', data: dias.map(x=>x.total).reverse(), backgroundColor: '#4f46e5' }] }
-      });
+    let charts = {};
+    function destroyChart(id){ if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
 
-      const top = await (await fetch('/api/ventas/top-productos')).json();
-      new Chart(document.getElementById('chartTop'), {
-        type: 'doughnut',
-        data: { labels: top.map(x=>x.nombre), datasets: [{ data: top.map(x=>x.cantidad), backgroundColor: ['#4f46e5','#06b6d4','#10b981','#f59e0b','#ef4444'] }] }
-      });
+    function buildQuery() {
+      const d = document.getElementById('desde').value;
+      const h = document.getElementById('hasta').value;
+      const p = new URLSearchParams();
+      if (d) p.set('desde', d);
+      if (h) p.set('hasta', h);
+      return p.toString() ? '?' + p.toString() : '';
     }
+    function renderDelta(elId, actual, anterior) {
+      const el = document.getElementById(elId);
+      if (!anterior || Number(anterior) === 0) { el.textContent = 'sin datos previos'; el.className = 'delta flat'; return; }
+      const pct = ((Number(actual) - Number(anterior)) / Number(anterior)) * 100;
+      const arrow = pct >= 0 ? '▲' : '▼';
+      el.textContent = arrow + ' ' + Math.abs(pct).toFixed(1) + '%';
+      el.className = 'delta ' + (pct >= 0 ? 'up' : 'down');
+    }
+    async function load() {
+      const btn = document.getElementById('refreshBtn');
+      btn.disabled = true; btn.textContent = 'Actualizando…';
+      try {
+        const q = buildQuery();
+        const [r, dias, top, cartera, stockBajo, clientesTop, porCategoria] = await Promise.all([
+          fetch('/api/ventas/resumen').then(x=>x.json()),
+          fetch('/api/ventas/por-dia' + q).then(x=>x.json()),
+          fetch('/api/ventas/top-productos' + q).then(x=>x.json()),
+          fetch('/api/clientes/cartera').then(x=>x.json()),
+          fetch('/api/productos/stock-bajo').then(x=>x.json()),
+          fetch('/api/clientes/top').then(x=>x.json()),
+          fetch('/api/ventas/por-categoria').then(x=>x.json())
+        ]);
+
+        document.getElementById('hoy').textContent = fmt(r.hoy);
+        document.getElementById('mes').textContent = fmt(r.mes);
+        document.getElementById('cartera').textContent = fmt(r.cartera);
+        document.getElementById('clientesSaldo').textContent = r.clientesConSaldo;
+        window.lastCartera = cartera;
+        document.getElementById('ticket').textContent = fmt(r.ticketPromedio);
+        document.getElementById('mes').parentElement.querySelector('.hint').textContent = (r.ventasMesCantidad || 0) + ' ventas este mes';
+        document.getElementById('stockBajoCount').textContent = stockBajo.length;
+        renderDelta('deltaHoy', r.hoy, r.hoyAnterior);
+        renderDelta('deltaMes', r.mes, r.mesAnterior);
+        const morosos = cartera.filter(c => c.dias > 60).length;
+        document.getElementById('morososHint').textContent = morosos + ' cliente' + (morosos===1?'':'s') + ' moroso' + (morosos===1?'':'s');
+
+        // Ventas por día
+        destroyChart('dias');
+        charts.dias = new Chart(document.getElementById('chartDias'), {
+          type: 'bar',
+          data: { labels: dias.map(x=>x.fecha).reverse(), datasets: [{ label: 'Ventas', data: dias.map(x=>x.total).reverse(), backgroundColor: '#4f46e5', borderRadius: 6 }] },
+          options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+        });
+
+        // Top productos
+        destroyChart('top');
+        charts.top = new Chart(document.getElementById('chartTop'), {
+          type: 'doughnut',
+          data: { labels: top.map(x=>x.nombre), datasets: [{ data: top.map(x=>x.cantidad), backgroundColor: ['#4f46e5','#06b6d4','#10b981','#f59e0b','#ef4444'], borderWidth: 0 }] },
+          options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+        });
+
+        // Cartera por cliente
+        destroyChart('car');
+        charts.car = new Chart(document.getElementById('chartCartera'), {
+          type: 'bar',
+          data: {
+            labels: cartera.map(x=>x.nombre),
+            datasets: [{ label: 'Saldo', data: cartera.map(x=>x.saldo), backgroundColor: cartera.map(x=>colorFor(x.dias)), borderRadius: 6 }]
+          },
+          options: {
+            indexAxis: 'y', responsive: true,
+            plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => fmt(ctx.raw) + ' · ' + cartera[ctx.dataIndex].dias + ' días' } } },
+            scales: { x: { beginAtZero: true } }
+          }
+        });
+
+        // Envejecimiento (buckets)
+        const buckets = { g:0, a:0, r:0 };
+        cartera.forEach(c => { if (c.dias > 60) buckets.r += Number(c.saldo); else if (c.dias > 30) buckets.a += Number(c.saldo); else buckets.g += Number(c.saldo); });
+        destroyChart('aging');
+        charts.aging = new Chart(document.getElementById('chartAging'), {
+          type: 'doughnut',
+          data: { labels: ['0–30 días','31–60 días','>60 días'], datasets: [{ data: [buckets.g, buckets.a, buckets.r], backgroundColor: ['#10b981','#f59e0b','#ef4444'], borderWidth: 0 }] },
+          options: { responsive: true, plugins: { legend: { position: 'bottom' }, tooltip: { callbacks: { label: ctx => ctx.label + ': ' + fmt(ctx.raw) } } } }
+        });
+
+        // Ventas por tipo
+        const tipoLabels = (r.ventasPorTipo || []).map(x => x.tipo || 'sin tipo');
+        const tipoData = (r.ventasPorTipo || []).map(x => Number(x.total));
+        destroyChart('tipo');
+        charts.tipo = new Chart(document.getElementById('chartTipo'), {
+          type: 'doughnut',
+          data: { labels: tipoLabels, datasets: [{ data: tipoData, backgroundColor: ['#4f46e5','#06b6d4','#10b981','#f59e0b'], borderWidth: 0 }] },
+          options: { responsive: true, plugins: { legend: { position: 'bottom' }, tooltip: { callbacks: { label: ctx => ctx.label + ': ' + fmt(ctx.raw) } } } }
+        });
+        document.getElementById('tipoLegend').textContent = (r.ventasPorTipo || []).map(x => (x.tipo||'sin tipo') + ': ' + x.cantidad + ' venta(s)').join(' · ');
+
+        // Tabla
+        const body = document.getElementById('carteraBody');
+        body.innerHTML = '';
+        if (cartera.length === 0) {
+          document.getElementById('carteraEmpty').style.display = 'block';
+        } else {
+          document.getElementById('carteraEmpty').style.display = 'none';
+
+        // Stock bajo
+        const sBody = document.getElementById('stockBody');
+        sBody.innerHTML = '';
+        if (stockBajo.length === 0) {
+          document.getElementById('stockEmpty').style.display = 'block';
+        } else {
+          document.getElementById('stockEmpty').style.display = 'none';
+          stockBajo.forEach(p => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${p.nombre}</td><td>${p.categoria || '-'}</td><td>${p.stock_actual}</td><td>${p.stock_minimo}</td>`;
+            sBody.appendChild(tr);
+          });
+        }
+          cartera.forEach(c => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${c.nombre}</td><td>${fmt(c.saldo)}</td><td>${c.dias}</td><td><span class="badge ${c.dias>60?'b-red':c.dias>30?'b-amber':'b-green'}">${labelFor(c.dias)}</span></td>`;
+            body.appendChild(tr);
+          });
+        }
+
+        // Top clientes
+        destroyChart('clientes');
+        charts.clientes = new Chart(document.getElementById('chartClientes'), {
+          type: 'bar',
+          data: { labels: clientesTop.map(x=>x.nombre), datasets: [{ label: 'Total', data: clientesTop.map(x=>x.total), backgroundColor: '#06b6d4', borderRadius: 6 }] },
+          options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => fmt(ctx.raw) } } }, scales: { x: { beginAtZero: true } } }
+        });
+        const ctBody = document.getElementById('clientesTopBody');
+        ctBody.innerHTML = '';
+        if (clientesTop.length === 0) {
+          document.getElementById('clientesTopEmpty').style.display = 'block';
+        } else {
+          document.getElementById('clientesTopEmpty').style.display = 'none';
+          clientesTop.forEach(c => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${c.nombre}</td><td>${c.compras}</td><td>${fmt(c.total)}</td>`;
+            ctBody.appendChild(tr);
+          });
+        }
+
+        // Ventas por categoría
+        const catLabels = porCategoria.map(x => x.categoria);
+        const catData = porCategoria.map(x => Number(x.total));
+        destroyChart('categoria');
+        charts.categoria = new Chart(document.getElementById('chartCategoria'), {
+          type: 'doughnut',
+          data: { labels: catLabels, datasets: [{ data: catData, backgroundColor: ['#4f46e5','#06b6d4','#10b981','#f59e0b','#ef4444','#8b5cf6'], borderWidth: 0 }] },
+          options: { responsive: true, plugins: { legend: { position: 'bottom' }, tooltip: { callbacks: { label: ctx => ctx.label + ': ' + fmt(ctx.raw) } } } }
+        });
+        document.getElementById('categoriaLegend').textContent = porCategoria.map(x => x.categoria + ': ' + fmt(x.total)).join(' · ');
+
+        document.getElementById('ts').textContent = 'Actualizado: ' + new Date().toLocaleTimeString('es-CO');
+      } catch (e) {
+        console.error(e);
+        alert('Error cargando datos: ' + e.message);
+      } finally {
+        btn.disabled = false; btn.textContent = '↻ Actualizar';
+      }
+    }
+
+    document.getElementById('refreshBtn').addEventListener('click', load);
+    document.getElementById('applyFilters').addEventListener('click', load);
+    document.getElementById('clearFilters').addEventListener('click', () => {
+      document.getElementById('desde').value = '';
+      document.getElementById('hasta').value = '';
+      load();
+    });
+    document.getElementById('exportCsv').addEventListener('click', () => {
+      const data = window.lastCartera || [];
+      const rows = [['Cliente','Saldo','Dias','Estado']];
+      data.forEach(c => rows.push([c.nombre, c.saldo, c.dias, (c.dias>60?'Moroso':c.dias>30?'Por vencer':'Al dia')]));
+      const csv = rows.map(r => r.map(v => '\"' + String(v).replace(/\"/g,'\"\"') + '\"').join(',')).join('\\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'cartera.csv'; a.click();
+      URL.revokeObjectURL(url);
+    });
     load();
   </script>
 </body>

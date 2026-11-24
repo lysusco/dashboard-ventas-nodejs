@@ -33,14 +33,20 @@ dashboard-ventas-nodejs/
 ```
 
 ## Endpoints disponibles
-- `GET /api/ventas/resumen` — totales del día, del mes y cartera pendiente
-- `GET /api/ventas/por-dia` — ventas agrupadas por día (últimos 14)
-- `GET /api/ventas/top-productos` — top 5 productos más vendidos
+- `GET /api/ventas/resumen` — totales del día, del mes, cartera, ticket promedio, ventas por tipo
+- `GET /api/ventas/por-dia?desde=&hasta=` — ventas agrupadas por día (filtros opcionales)
+- `GET /api/ventas/top-productos?desde=&hasta=` — top 5 productos (filtros opcionales)
+- `GET /api/ventas/por-categoria` — ventas por categoría (mes en curso)
+- `GET /api/clientes/cartera` — clientes con saldo pendiente y días de antigüedad
+- `GET /api/clientes/top` — top 5 clientes por compras
+- `GET /api/productos/stock-bajo` — productos con stock <= mínimo
 
-## Tablas esperadas en la BD (minimercado_el_ahorro)
-- `ventas` (id, total, estado, abonado, created_at)
+## Tablas usadas en la BD (minimercado_el_ahorro)
+- `ventas` (id, cliente_id, fecha, total, estado[pagada/parcial], created_at)
 - `detalle_ventas` (venta_id, producto_id, cantidad)
 - `productos` (id, nombre)
+- `clientes` (id, nombre, saldo, activo)
+- `abonos` (venta_id, monto, fecha)
 
 ## Cómo ejecutar
 ```bash
